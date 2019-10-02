@@ -6,7 +6,12 @@
 
 ```bash
 # 安装依赖
-python -m pip install uiautomator2 opencv
+pip3 install -r requirements.txt
+
+# 安装tesseract (Mac)
+brew install tesseract
+# 安装中文语言包 (tesseract 4.1.0)
+curl -o /usr/local/Cellar/tesseract/4.1.0/share/tessdata/chi_sim.traineddata -O https://github.com/tesseract-ocr/tessdata/raw/master/chi_sim.traineddata
 
 # adb 连接
 # 使用 MuMu 模拟器，确保屏幕大小为 1920（长） * 1080（宽）
@@ -16,15 +21,16 @@ adb connect 127.0.0.1:7555
 adb devices
 
 # 在已完成 adb 连接后，在手机安装 ATX 应用
-python -m uiautomator2 init
+python3 -m uiautomator2 init
 
 # 打开 ATX ，点击“启动 UIAutomator”选项，确保 UIAutomator 是运行的。
 
 # 进入游戏页面，启动自动脚本。
-python main.py
+python3 main.py
 ```
 
 ## 定制
+目前火车货物并未全部收录，如果遇到未识别的新的货物，按照如下操作  
 + 修改火车货物对应的建筑：`prop.py` -> `BUILDING_2_GOODS` 
 + 新增火车货物：`target.py` & `target/`
 
