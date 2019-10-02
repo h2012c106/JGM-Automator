@@ -34,6 +34,23 @@ def elect(order_list_len, iter_round):
     return res
 
 
+# u2的screenshot函数会由于长时间未操作的断连而抛出错误，click函数会试图重连
+def my_screenshot(d, format="opencv"):
+    res = None
+    try_time = 0
+    while res is None:
+        try:
+            res = d.screenshot(format=format)
+        except Exception:
+            try_time += 1
+            logger.warning(f'Connection with simulator fail, try to reconnect, #{try_time} attempt')
+            # 随便点哪里，click函数会试图重连
+            d.click(*prop.BUILDING_POS[1])
+    if try_time > 0:
+        logger.info('Reconnect success, continue')
+    return res
+
+
 class Automator:
     def __init__(self, device: str, keyboard: Queue):
         """
@@ -78,7 +95,7 @@ class Automator:
             # if datetime.now().hour > 17:
             if True:
                 # 获取当前屏幕快照
-                screen = self.d.screenshot(format="opencv")
+                screen = my_screenshot(self.d, format="opencv")
                 # 判断是否出现货物。
                 has_goods = False
                 for target in self.config.goods_2_building_seq.keys():
@@ -180,7 +197,7 @@ class Automator:
             return res
 
     def _select_min_building(self):
-        screen = self.d.screenshot(format="opencv")
+        screen = my_screenshot(self.d, format="opencv")
         screen = UIMatcher.pre(screen)
         min_level = float('inf')
         min_building_seq = None
