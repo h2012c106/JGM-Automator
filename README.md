@@ -14,11 +14,7 @@ brew install tesseract
 curl -o /usr/local/Cellar/tesseract/4.1.0/share/tessdata/chi_sim.traineddata -O https://github.com/tesseract-ocr/tessdata/raw/master/chi_sim.traineddata
 
 # adb 连接
-# 使用 MuMu 模拟器，确保屏幕大小为 1920（长） * 1080（宽）
-adb connect 127.0.0.1:7555
-
-# 获取 device 名称,并填写至 main.py
-adb devices
+adb kill-server && adb server
 
 # 在已完成 adb 连接后，在手机安装 ATX 应用
 python3 -m uiautomator2 init
@@ -33,12 +29,15 @@ python3 main.py
 目前火车货物并未全部收录，如果遇到未识别的新的货物，按照如下操作  
 + 修改火车货物对应的建筑：`prop.py` -> `BUILDING_2_GOODS` 
 + 新增火车货物：`target.py` & `target/`
++ 新增操作（比如自动升级政策）：`config.json`定义interval & `automator.py`定义方法（废话）+ 指定方法优先级`METHOD_ORDER` & `config.py`定义config名与方法名的对应
 
 ## 新增特性
 + 定时升级房屋，策略：按照配置文件优先升级高星建筑的对应buff建筑
 + 将硬编码部分配置文件化
 + 支持配置文件的热加载
 + 支持在命令行中以回车暂停/重启，以及优雅关闭，方便手动操作（如抽奖）
++ 抄了一波源仓库的货物检测实现，不用傻逼一样每次比对
++ 由于操作略多（收钱、火车、检测城市任务、升级建筑以及未来有可能继续抄的升级政策），原来的任务调度模式过于沙雕（每个interval需要对每个任务做一次是否需要执行的判断），引入scheduler执行一个阉割时间轮（实际上不是轮，是一个dict，长度无限，为了节省内存会把已经走过的时间key pop掉）
 
 ## 说明
 
@@ -73,3 +72,6 @@ python -m weditor
 `python3 main.py` 启动  
 `[回车]` 暂停/重启（会有日志提示）  
 `end[回车]` 结束应用  
+
+## TODO
++ 几个操作所使用的屏幕截图应当有重用关系，但是不知为何缓存用不上，估计是self.d没法做缓存键(?)

@@ -1,6 +1,7 @@
 import json
 import prop
 import time
+import pickle
 from numpy import array
 from building import BuildingType
 
@@ -17,12 +18,19 @@ def print_run_time(func):
     return wrapper
 
 
+CONFIG_NAME_2_METHOD_NAME = {
+    'swipe_interval_sec': '_swipe',
+    'upgrade_interval_sec': '_upgrade',
+    'good_interval_sec': '_check_good',
+    'mission_interval_sec': '_match_mission'
+}
+
+
 class Reader:
     building_pos = None
     goods_2_building_seq = None
     upgrade_order = None
-    swipe_interval_sec = None
-    upgrade_interval_sec = None
+    interval_map = None
     upgrade_press_time_sec = None
 
     def _building_name_star_2_building_enum_star(self, building_name_star):
@@ -71,11 +79,21 @@ class Reader:
     def refresh(self):
         with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
             config = json.load(f)
-        self.swipe_interval_sec = config['swipe_interval_sec']
-        self.upgrade_interval_sec = config['upgrade_interval_sec']
+        self.interval_map = {}
+        for config_name in CONFIG_NAME_2_METHOD_NAME.keys():
+            self.interval_map[config_name] = config.get(config_name, -1)
+
         self.upgrade_press_time_sec = config['upgrade_press_time_sec']
+
         flattened_building_pos = self._flatten_list(config['building_pos'])
         self.building_pos = self._generate_building_pos(flattened_building_pos)
         self.goods_2_building_seq = self._generate_goods_2_building_seq(self.building_pos, config['train_get_rank'])
         self.upgrade_order = self._generate_upgrade_order(flattened_building_pos, self.building_pos)
         # print(self.goods_2_building_seq, self.upgrade_order)
+
+    def to_string(self):
+        return pickle.dumps(self)
+
+    @staticmethod
+    def from_string(b):
+        return pickle.loads(b)

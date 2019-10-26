@@ -1,11 +1,18 @@
 {
-  "swipe_interval_sec": 5,
-  "upgrade_interval_sec": 600,
-  "upgrade_press_time_sec": 20,
+  "swipe_interval_sec": 10,
+  "upgrade_interval_sec": 2000,
+  "mission_interval_sec": 3600,
+  "good_interval_sec": 30,
+  "upgrade_press_time_sec": 10,
   "building_pos": [
-    ["木材厂 4", "电厂 3", "食品厂 4"],
-    ["学校 4", "便利店 3", "菜市场 3"],
-    ["居民楼 4", "人才公寓 2", "木屋 4"]
+    ["企鹅机械 3", "人民石油 4", "零件厂 5"],
+    ["媒体之声 3", "民食斋 4", "商贸中心 5"],
+    ["小型公寓 5", "空中别墅 3", "复兴公馆 4"]
   ],
-  "train_get_rank": 0
+  "building_pos_bak": [
+    ["纺织厂 5", "电厂 5", "造纸厂 5"],
+    ["服装店 5", "图书城 5", "商贸中心 5"],
+    ["中式小楼 5", "人才公寓 5", "花园洋房 5"]
+  ],
+  "train_get_rank": 1
 }

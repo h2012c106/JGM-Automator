@@ -30,6 +30,24 @@ BUILDING_POS = {
 BUILDING_DETAIL_BTN = (982, 1151)
 # 建筑升级按钮坐标
 BUILDING_UPGRADE_BTN = (863, 1756)
+# 任务按钮
+MISSION_BTN = (172, 1621)
+# 完成任务按钮
+MISSION_DONE_BTN = (549, 1552)
+# 关闭任务界面按钮
+MISSION_CLOSE_BTN = (1012, 219)
+# 三个车厢货物的位置
+GOODS_POSITIONS = {
+    1: (0.609, 0.854),
+    2: (0.758, 0.815),
+    3: (0.896, 0.766)
+}
+# 货物的那个叉叉的位置 相对位置
+CROSS_POSITIONS = {
+    1: (0.632, 0.878),
+    2: (0.776, 0.836),
+    3: (991 / 1080, 1517 / 1920)
+}
 
 # 游戏属性相关
 # 建筑对应加buff的对象
@@ -106,33 +124,33 @@ BUILDING_2_GOODS = {
     BuildingType.木屋: TargetType.Chair,
     BuildingType.居民楼: TargetType.Box,
     BuildingType.钢结构房: TargetType.Sofa,
-    BuildingType.平房: None,
-    BuildingType.小型公寓: None,
-    BuildingType.人才公寓: TargetType.Laptop,
-    BuildingType.花园洋房: None,
+    BuildingType.平房: TargetType.Potting,
+    BuildingType.小型公寓: TargetType.Cupboard,
+    BuildingType.人才公寓: TargetType.Computer,
+    BuildingType.花园洋房: TargetType.Fertilizer,
     BuildingType.中式小楼: TargetType.Quilt,
-    BuildingType.空中别墅: None,
-    BuildingType.复兴公馆: None,
+    BuildingType.空中别墅: TargetType.Lamp,
+    BuildingType.复兴公馆: TargetType.Silk,
     BuildingType.便利店: TargetType.Bottle,
     BuildingType.五金店: TargetType.Screw,
     BuildingType.服装店: TargetType.Cloth,
     BuildingType.菜市场: TargetType.Vegetable,
-    BuildingType.学校: TargetType.Bag,
+    BuildingType.学校: TargetType.Schoolbag,
     BuildingType.图书城: TargetType.Book,
-    BuildingType.商贸中心: None,
-    BuildingType.加油站: None,
-    BuildingType.民食斋: None,
-    BuildingType.媒体之声: None,
+    BuildingType.商贸中心: TargetType.Heels,
+    BuildingType.加油站: TargetType.Gasoline,
+    BuildingType.民食斋: TargetType.Chicken,
+    BuildingType.媒体之声: TargetType.Mic,
     BuildingType.木材厂: TargetType.Wood,
     BuildingType.食品厂: TargetType.Food,
     BuildingType.造纸厂: TargetType.Straw,
-    BuildingType.水厂: None,
+    BuildingType.水厂: TargetType.Chlorine,
     BuildingType.电厂: TargetType.Mine,
     BuildingType.钢铁厂: TargetType.Coal,
     BuildingType.纺织厂: TargetType.Cotton,
-    BuildingType.零件厂: None,
-    BuildingType.企鹅机械: None,
-    BuildingType.人民石油: None,
+    BuildingType.零件厂: TargetType.Steel,
+    BuildingType.企鹅机械: TargetType.Kit,
+    BuildingType.人民石油: TargetType.Oil,
 }
 
 # 终止信号

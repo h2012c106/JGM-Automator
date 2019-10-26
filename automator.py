@@ -1,14 +1,19 @@
 from target import TargetType
 from building import BuildingType
-from multiprocessing import Queue
+from scheduler import Scheduler, CONFIG_PREFIX, METHOD_PREFIX, METHOD_SEP
+from multiprocessing import Queue, Process
 from config import Reader
 from cv import UIMatcher
 from random import choice
+from operator import methodcaller
 from datetime import datetime
+from wrapcache import wrapcache
 import uiautomator2 as u2
 import logging
 import time
 import prop
+
+MISSION_DONE = 'target/Mission_done.jpg'
 
 BASIC_FORMAT = "[%(asctime)s] %(levelname)s - %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -24,6 +29,13 @@ logger = logging.getLogger()
 logger.setLevel('INFO')
 logger.addHandler(chlr)
 logger.addHandler(fhlr)
+
+METHOD_ORDER = {
+    '_swipe': 1,
+    '_upgrade': 2,
+    '_check_good': 1,
+    '_match_mission': 0
+}
 
 
 def elect(order_list_len, iter_round):
@@ -43,12 +55,22 @@ def my_screenshot(d, format="opencv"):
             res = d.screenshot(format=format)
         except Exception:
             try_time += 1
-            logger.warning(f'Connection with simulator fail, try to reconnect, #{try_time} attempt')
+            logger.warning(f'Connection with simulator gone, try to reconnect, #{try_time} attempt')
             # 随便点哪里，click函数会试图重连
             d.click(*prop.BUILDING_POS[1])
     if try_time > 0:
         logger.info('Reconnect success, continue')
     return res
+
+
+# @wrapcache(timeout=5)
+def my_screenshot_with_cache(d, format="opencv"):
+    return my_screenshot(d, format=format)
+
+
+def make_scheduler(keyboard: Queue, pipe: Queue):
+    scheduler = Scheduler(keyboard, pipe)
+    scheduler.run()
 
 
 class Automator:
@@ -60,6 +82,10 @@ class Automator:
         self.config = Reader()
         self.upgrade_iter_round = 0
         self.keyboard = keyboard
+        self.schedule_keyboard = Queue()
+        self.pipe = Queue()
+        self.p = Process(target=make_scheduler, args=(self.schedule_keyboard, self.pipe))
+        self.p.start()
 
     def _need_continue(self):
         if not self.keyboard.empty():
@@ -82,44 +108,28 @@ class Automator:
         """
         启动脚本，请确保已进入游戏页面。
         """
-        tmp_upgrade_last_time = time.time()
         while True:
             # 检查是否有键盘事件
             if not self._need_continue():
+                self.schedule_keyboard.put('')
+                self.p.join()
                 break
 
-            # 更新配置文件
-            self.config.refresh()
+            msg = self.pipe.get()
+            if isinstance(msg, bytes) or msg.startswith(CONFIG_PREFIX):
+                msg = msg[len(CONFIG_PREFIX):] if not isinstance(msg, bytes) else msg
+                self.config = Reader.from_string(msg)
+            elif msg.startswith(METHOD_PREFIX):
+                msg = msg[len(METHOD_PREFIX):]
+                method_list = msg.split(METHOD_SEP)
+                method_list = sorted(method_list, key=lambda item: METHOD_ORDER.get(item, float('inf')))
+                # 简单粗暴的方式，处理 “XX之光” 的荣誉显示。
+                # 当然，也可以使用图像探测的模式。
+                self.d.click(550, 1650)
+                logger.info(f'Scheduled method: [{", ".join(method_list)}]')
+                for method_name in method_list:
+                    methodcaller(method_name)(self)
 
-            # 在下午五点以后再开始拿火车，收益最大化
-            # if datetime.now().hour > 17:
-            if True:
-                # 获取当前屏幕快照
-                screen = my_screenshot(self.d, format="opencv")
-                # 判断是否出现货物。
-                has_goods = False
-                for target in self.config.goods_2_building_seq.keys():
-                    has_goods |= self._match_target(screen, target)
-                if has_goods:
-                    UIMatcher.write(screen)
-                    # pass
-
-            # 简单粗暴的方式，处理 “XX之光” 的荣誉显示。
-            # 当然，也可以使用图像探测的模式。
-            self.d.click(550, 1650)
-
-            # 滑动屏幕，收割金币。
-            # logger.info("swipe")
-            self._swipe()
-
-            tmp_upgrade_interval = time.time() - tmp_upgrade_last_time
-            if tmp_upgrade_interval >= self.config.upgrade_interval_sec:
-                self._upgrade()
-                tmp_upgrade_last_time = time.time()
-            else:
-                logger.info(f"Left {self.config.upgrade_interval_sec - tmp_upgrade_interval}s to upgrade")
-
-            time.sleep(self.config.swipe_interval_sec)
         logger.info('Sub process end')
 
     def _swipe(self):
@@ -148,6 +158,18 @@ class Automator:
         获取货物要移动到的屏幕位置。
         """
         return self._get_position(self.config.goods_2_building_seq.get(target))
+
+    def _match_mission(self):
+        screen = my_screenshot_with_cache(self.d, format="opencv")
+        print(screen)
+        result = UIMatcher.match(screen, TargetType.Mission_done)
+        if result is None:
+            return
+        self.d.click(*prop.MISSION_BTN)
+        time.sleep(1)
+        self.d.click(*prop.MISSION_DONE_BTN)
+        time.sleep(1)
+        self.d.click(*prop.MISSION_CLOSE_BTN)
 
     def _match_target(self, screen, target: TargetType):
         """
@@ -241,3 +263,47 @@ class Automator:
                           self.config.upgrade_press_time_sec)
         time.sleep(0.5)
         self.d.click(*prop.BUILDING_DETAIL_BTN)
+
+    def _get_screenshot_while_touching(self, location, pressed_time=0.2, screen_before=None):
+        '''
+        Get screenshot with screen touched.
+        '''
+        if screen_before is None:
+            screen_before = my_screenshot(self.d, format="opencv")
+        h, w = len(screen_before), len(screen_before[0])
+        x, y = (location[0] * w, location[1] * h)
+        # 按下
+        self.d.touch.down(x, y)
+        # print('[%s]Tapped'%time.asctime())
+        time.sleep(pressed_time)
+        # 截图
+        screen = my_screenshot(self.d, format="opencv")
+        # print('[%s]Screenning'%time.asctime())
+        # 松开
+        self.d.touch.up(x, y)
+        # 返回按下前后两幅图
+        return screen_before, screen
+
+    def _carry_good(self, _from, _to, _time=5):
+        arg = _from + _to
+        for _ in range(_time):
+            self.d.swipe(*arg)
+
+    def _check_good(self):
+        screen_before = my_screenshot_with_cache(self.d, format="opencv")
+        h = len(screen_before)
+        w = len(screen_before[0])
+        good_id_list = UIMatcher.detect_cross(screen_before)
+        for good_id in good_id_list:
+            two_screen = self._get_screenshot_while_touching(prop.GOODS_POSITIONS[good_id],
+                                                             screen_before=screen_before)
+            good_dest = UIMatcher.find_green_light(two_screen)
+            if 1 <= good_dest <= 9 and good_dest in self.config.goods_2_building_seq.values():
+                dx, dy = self._get_position(good_dest)
+
+                sx, sy = prop.GOODS_POSITIONS[good_id]
+                sx = sx * w
+                sy = sy * h
+
+                logger.info(f'Detect good {good_id} -> {good_dest}: ({sx},{sy}) -> ({dx},{dy})')
+                self._carry_good((sx, sy), (dx, dy))
